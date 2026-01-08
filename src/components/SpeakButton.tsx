@@ -30,36 +30,35 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({ text, className = '' }
     const utterance = new SpeechSynthesisUtterance(text);
 
     if (hasChinese) {
-      // 1. 優先嘗試瀏覽器原生 API (因為原生的通常品質最好且免費)
-      // 特別是 iOS/macOS/Chrome Desktop 通常都有很好的廣東話支援
+      // 1. 優先嘗試瀏覽器原生 API
       const cantoneseVoice = voices.find(v => 
         v.lang === 'zh-HK' || 
+        v.lang === 'yue-HK' || // Android 常見
+        v.lang === 'yue' || 
         v.name.includes('Cantonese') || 
         v.name.includes('粵語') ||
         v.name.includes('Hong Kong') ||
+        v.name.includes('HK') ||
         v.name.includes('HiuGaai')
       );
 
       if (cantoneseVoice) {
+        console.log('Using native Cantonese voice:', cantoneseVoice.name);
         utterance.voice = cantoneseVoice;
         utterance.lang = 'zh-HK';
         window.speechSynthesis.speak(utterance);
         return;
       }
 
-      // 2. 如果原生沒有，嘗試 Google Translate TTS (透過 HTML5 Audio 直接播放)
-      // 這是最簡單的 fallback，通常在 Mobile/Firefox 有效
-      // 使用 client=tw-ob 可以獲得較好的相容性
+      // 2. 如果原生沒有，使用 Google Translate TTS
+      console.log('Native Cantonese not found, trying Google TTS');
       const googleTTSUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=zh-HK&client=tw-ob`;
       const audio = new Audio(googleTTSUrl);
       
-      // 嘗試播放，如果失敗則印出錯誤
       audio.play().catch(e => {
         console.error('Google TTS playback failed', e);
-        // 3. 真的沒辦法了，只好用普通話 fallback (原生)
-        console.warn('Fallback to native Mandarin');
-        utterance.lang = 'zh-TW'; 
-        window.speechSynthesis.speak(utterance);
+        // 3. 如果連 Google 都失敗，與其唸普通話，不如提示使用者
+        alert('您的裝置沒有內建廣東話語音，且網路發音失敗。請在手機設定中安裝「Google 文字轉語音」的廣東話套件。');
       });
 
     } else {
