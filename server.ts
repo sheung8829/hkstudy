@@ -18,7 +18,9 @@ const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT;
 
 if (serviceAccountKey) {
   try {
-    const serviceAccount = JSON.parse(serviceAccountKey);
+    // Fix: Handle escaped newlines from environment variables
+    const formattedKey = serviceAccountKey.replace(/\\n/g, '\n');
+    const serviceAccount = JSON.parse(formattedKey);
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount)
     });
