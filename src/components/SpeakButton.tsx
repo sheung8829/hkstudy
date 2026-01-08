@@ -50,16 +50,15 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({ text, className = '' }
         return;
       }
 
-      // 2. 如果原生沒有，使用 Google Translate TTS
-      console.log('Native Cantonese not found, trying Google TTS');
-      const googleTTSUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=zh-HK&client=tw-ob`;
-      const audio = new Audio(googleTTSUrl);
-      
-      audio.play().catch(e => {
-        console.error('Google TTS playback failed', e);
-        // 3. 如果連 Google 都失敗，與其唸普通話，不如提示使用者
-        alert('您的裝置沒有內建廣東話語音，且網路發音失敗。請在手機設定中安裝「Google 文字轉語音」的廣東話套件。');
-      });
+      // 2. 如果原生沒有，使用 ResponsiveVoice (這是目前唯一可靠的跨瀏覽器廣東話方案)
+      if ((window as any).responsiveVoice) {
+        console.log('Using ResponsiveVoice fallback');
+        (window as any).responsiveVoice.speak(text, "Chinese (Hong Kong Female)");
+        return;
+      }
+
+      // 3. 如果連 ResponsiveVoice 都失敗，提示使用者
+      alert('您的裝置沒有內建廣東話語音，且網路發音失敗。');
 
     } else {
       // 英文發音
