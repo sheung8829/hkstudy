@@ -8,8 +8,8 @@ services:
     envVars:
       - key: PORT
         value: 10000
-      - key: MONGODB_URI
-        sync: false # 需在 Render 控制台手動填入 MongoDB Connection String
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false # 需在 Render 控制台手動填入 Firebase Service Account JSON
       - key: VITE_API_URL
         fromService:
           type: web
