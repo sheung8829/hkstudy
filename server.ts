@@ -28,13 +28,14 @@ const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT;
 
 if (serviceAccountKey) {
   try {
-    // Fix: Handle escaped newlines from environment variables
-    const formattedKey = serviceAccountKey.replace(/\\n/g, '\n');
-    const serviceAccount = JSON.parse(formattedKey);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
-    console.log('Firebase initialized successfully');
+    if (!admin.apps.length) {
+       const formattedKey = serviceAccountKey.replace(/\\n/g, '\n');
+       const serviceAccount = JSON.parse(formattedKey);
+       admin.initializeApp({
+         credential: admin.credential.cert(serviceAccount)
+       });
+       console.log('Firebase initialized successfully');
+    }
   } catch (error) {
     console.error('Error parsing FIREBASE_SERVICE_ACCOUNT:', error);
   }
