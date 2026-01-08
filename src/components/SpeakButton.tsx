@@ -1,15 +1,4 @@
 import React, { useEffect, useState } from 'react';
-// import * as sdk from 'microsoft-cognitiveservices-speech-sdk';
-
-// Add type definition for ResponsiveVoice
-declare global {
-  interface Window {
-    responsiveVoice?: {
-      speak: (text: string, voice: string) => void;
-      voiceSupport: () => boolean;
-    };
-  }
-}
 
 interface SpeakButtonProps {
   text: string;
@@ -33,89 +22,41 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({ text, className = '' }
     };
   }, []);
 
-  /*
-  const speakWithEdgeTTS = async (text: string, voice: string) => {
-    // Note: In a production environment, you should use your own Azure Speech resource key and region.
-    // For this demo, we will try to fallback to other methods if this is not configured.
-    // Since we don't have a backend to hide the key, we'll stick to client-side methods first.
-    // But since the user specifically asked for Edge TTS as an alternative, we will simulate the logic 
-    // or use a public endpoint if available, but Microsoft doesn't offer a free unauthenticated public API for Edge TTS directly from browser easily without a proxy.
-    
-    // Instead of full Azure SDK implementation which requires a Key (that user doesn't have),
-    // we will optimize the existing fallback chain which is actually the most robust "free" way.
-    // The previous "edge-tts" plan might have been misleading as it usually requires a server-side component or a key.
-    
-    // However, we can try to force the "Microsoft HiuGaai Online (Natural) - Chinese (Cantonese)" if available in the browser (Edge browser has this built-in).
-    return false;
-  };
-  */
-
   const handleSpeak = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Cancel any ongoing speech
     window.speechSynthesis.cancel();
 
     const hasChinese = /[\u4e00-\u9fa5]/.test(text);
+    const utterance = new SpeechSynthesisUtterance(text);
 
-    // If it's Chinese, try to use Cantonese
     if (hasChinese) {
-      // 1. First, try Local Edge TTS Backend (Highest Priority for reliability and quality)
-      // This guarantees "zh-HK-HiuGaaiNeural" which is high quality Cantonese.
-      const playAudio = (url: string): Promise<void> => {
-          return new Promise((resolve, reject) => {
-            const audio = new Audio(url);
-            audio.onended = () => resolve();
-            audio.onerror = (e) => reject(e);
-            audio.play().catch(reject);
-          });
-      };
+      // 嘗試尋找廣東話發音
+      const cantoneseVoice = voices.find(v => 
+        v.lang === 'zh-HK' || 
+        v.name.includes('Cantonese') || 
+        v.name.includes('粵語') ||
+        v.name.includes('Hong Kong') ||
+        v.name.includes('HiuGaai')
+      );
 
-      const tryBackendTTS = async () => {
-          try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-            await playAudio(`${apiUrl}/api/tts?text=${encodeURIComponent(text)}`);
-          } catch (e) {
-            console.error('Local Edge TTS failed. Trying system voice fallback...', e);
-            
-            // 2. Fallback to System Voice (Only if strictly Cantonese)
-            // This logic runs only if backend fails.
-            let targetVoice = voices.find(v => 
-              v.lang === 'zh-HK' || 
-              v.lang === 'zh-HK.js' ||
-              v.name.includes('Cantonese') || 
-              v.name.includes('粵語') ||
-              v.name.includes('Hong Kong') ||
-              v.name.includes('HiuGaai') || 
-              v.name.includes('HiuMaan')    
-            );
-
-            if (targetVoice) {
-              const utterance = new SpeechSynthesisUtterance(text);
-              utterance.voice = targetVoice;
-              utterance.lang = 'zh-HK';
-              window.speechSynthesis.speak(utterance);
-            } else {
-              console.warn('No Cantonese voice found in system. Muted to avoid Mandarin fallback.');
-            }
-          }
-      };
-      
-      tryBackendTTS();
-
-    } else {
-      // English handling (British preference)
-      const utterance = new SpeechSynthesisUtterance(text);
-      const targetVoice = voices.find(v => v.lang === 'en-GB' || v.lang === 'en_GB');
-      
-      if (targetVoice) {
-        utterance.voice = targetVoice;
-        utterance.lang = targetVoice.lang;
+      if (cantoneseVoice) {
+        utterance.voice = cantoneseVoice;
+        utterance.lang = 'zh-HK';
       } else {
-        utterance.lang = 'en-GB';
+        // 如果找不到廣東話，嘗試用預設中文 (可能會變成普通話，但總比沒有好)
+        // 但為了避免混淆，我們設定 lang 為 zh-HK，看瀏覽器是否能自動處理
+        utterance.lang = 'zh-HK';
       }
-      
-      window.speechSynthesis.speak(utterance);
+    } else {
+      // 英文發音 (優先使用英式英語)
+      const englishVoice = voices.find(v => v.lang === 'en-GB' || v.lang === 'en_GB');
+      if (englishVoice) {
+        utterance.voice = englishVoice;
+      }
+      utterance.lang = 'en-GB';
     }
+
+    window.speechSynthesis.speak(utterance);
   };
 
   return (

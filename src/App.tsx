@@ -8,6 +8,8 @@ import { LessonManager } from './components/LessonManager';
 import { ChallengeHub } from './components/games/ChallengeHub';
 import { useAuth, AuthProvider } from './context/AuthContext';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { db } from './firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 function StudyApp() {
   const { user, logout } = useAuth();
@@ -23,28 +25,27 @@ function StudyApp() {
     const loadData = async () => {
       if (user) {
         try {
-          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-          const response = await fetch(`${apiUrl}/api/data/${user.id}`);
+          const docRef = doc(db, 'userData', user.id);
+          const docSnap = await getDoc(docRef);
           
-          if (response.ok) {
-            const data = await response.json();
-            
-            // Check if we need to migrate from localStorage
-            const localWords = localStorage.getItem(`studyweb_data_${user.id}`);
-            const localLessons = localStorage.getItem(`studyweb_lessons_${user.id}`);
-            
-            if ((!data.words || data.words.length === 0) && localWords) {
-               // Migration case
-               const wordsToSync = JSON.parse(localWords);
-               const lessonsToSync = localLessons ? JSON.parse(localLessons) : [];
-               setWords(wordsToSync);
-               setLessons(lessonsToSync);
-               // Trigger save to sync
-               return; 
-            }
-
+          if (docSnap.exists()) {
+            const data = docSnap.data();
             setWords(data.words || []);
             setLessons(data.lessons || []);
+          } else {
+             // Check localStorage for migration
+             const localWords = localStorage.getItem(`studyweb_data_${user.id}`);
+             const localLessons = localStorage.getItem(`studyweb_lessons_${user.id}`);
+             
+             if (localWords) {
+                const wordsToSync = JSON.parse(localWords);
+                const lessonsToSync = localLessons ? JSON.parse(localLessons) : [];
+                setWords(wordsToSync);
+                setLessons(lessonsToSync);
+             } else {
+                setWords([]);
+                setLessons([]);
+             }
           }
         } catch (error) {
           console.error("Failed to load data:", error);
@@ -62,12 +63,13 @@ function StudyApp() {
     const saveData = async () => {
       if (user) {
         try {
-          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-          await fetch(`${apiUrl}/api/data/${user.id}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ words, lessons })
-          });
+          const docRef = doc(db, 'userData', user.id);
+          await setDoc(docRef, {
+            userId: user.id,
+            words,
+            lessons,
+            updatedAt: Date.now()
+          }, { merge: true });
           
           // Also keep in localStorage as backup/offline cache
           localStorage.setItem(`studyweb_data_${user.id}`, JSON.stringify(words));

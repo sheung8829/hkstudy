@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState } from 'react';
 import type { User } from '../types';
 import { jwtDecode } from "jwt-decode";
+import { db } from '../firebase';
+import { collection, query, where, getDocs, addDoc, updateDoc } from 'firebase/firestore';
 
 interface AuthContextType {
   user: User | null;
@@ -26,19 +28,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (username: string, password?: string) => {
     clearError();
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      const response = await fetch(`${apiUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
+      // Direct Firestore query
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('username', '==', username), where('password', '==', password));
+      const querySnapshot = await getDocs(q);
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || '登入失敗');
+      if (querySnapshot.empty) {
+        throw new Error('帳號或密碼錯誤');
       }
 
-      const currentUser = await response.json();
+      const userDoc = querySnapshot.docs[0];
+      const userData = userDoc.data();
+      const currentUser: User = {
+        id: userDoc.id,
+        username: userData.username,
+        createdAt: userData.createdAt
+      };
+
       setUser(currentUser);
       localStorage.setItem('currentUser', JSON.stringify(currentUser));
       return true;
@@ -51,21 +57,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (username: string, password?: string) => {
     clearError();
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      const response = await fetch(`${apiUrl}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || '註冊失敗');
+      const usersRef = collection(db, 'users');
+      
+      // Check if user exists
+      const q = query(usersRef, where('username', '==', username));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        throw new Error('使用者名稱已被使用');
       }
 
-      const newUser = await response.json();
-      setUser(newUser);
-      localStorage.setItem('currentUser', JSON.stringify(newUser));
+      // Create user
+      const newUser = {
+        username,
+        password,
+        createdAt: Date.now()
+      };
+      
+      const docRef = await addDoc(usersRef, newUser);
+      
+      const currentUser: User = {
+        id: docRef.id,
+        username: newUser.username,
+        createdAt: newUser.createdAt
+      };
+
+      setUser(currentUser);
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
       return true;
     } catch (err: any) {
       setError(err.message);
@@ -80,18 +98,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const googleId = decoded.sub;
       const email = decoded.email;
 
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      const response = await fetch(`${apiUrl}/api/auth/google`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, googleId })
-      });
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('username', '==', email));
+      const querySnapshot = await getDocs(q);
 
-      if (!response.ok) {
-        throw new Error('Google 登入失敗');
+      let currentUser: User;
+
+      if (querySnapshot.empty) {
+        // Create new user
+        const newUser = {
+          username: email,
+          googleId,
+          createdAt: Date.now()
+        };
+        const docRef = await addDoc(usersRef, newUser);
+        currentUser = {
+          id: docRef.id,
+          username: newUser.username,
+          createdAt: newUser.createdAt
+        };
+      } else {
+        // User exists
+        const userDoc = querySnapshot.docs[0];
+        const userData = userDoc.data();
+        
+        // Update googleId if missing
+        if (!userData.googleId) {
+           await updateDoc(userDoc.ref, { googleId });
+        }
+
+        currentUser = {
+          id: userDoc.id,
+          username: userData.username,
+          createdAt: userData.createdAt
+        };
       }
 
-      const currentUser = await response.json();
       setUser(currentUser);
       localStorage.setItem('currentUser', JSON.stringify(currentUser));
     } catch (err: any) {
