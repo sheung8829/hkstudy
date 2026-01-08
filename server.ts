@@ -11,6 +11,16 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 3001;
 
+// Allow CORS for everyone (since frontend and backend are on same Vercel domain usually)
+app.use(cors({
+  origin: '*', 
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Handle preflight requests
+app.options('*', cors());
+
 // --- Firebase Setup ---
 // In production (Render), we will pass the service account JSON string via Environment Variable
 // Variable name: FIREBASE_SERVICE_ACCOUNT
@@ -35,7 +45,7 @@ if (serviceAccountKey) {
 
 const db = admin.firestore();
 
-app.use(cors());
+// app.use(cors()); // Already configured above
 app.use(express.json());
 
 // --- Auth Routes ---
