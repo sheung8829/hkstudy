@@ -98,6 +98,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const googleId = decoded.sub;
       const email = decoded.email;
 
+      if (!email) {
+        throw new Error('無法取得 Google Email');
+      }
+
       const usersRef = collection(db, 'users');
       const q = query(usersRef, where('username', '==', email));
       const querySnapshot = await getDocs(q);

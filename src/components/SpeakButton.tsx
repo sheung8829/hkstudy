@@ -42,10 +42,13 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({ text, className = '' }
       if (cantoneseVoice) {
         utterance.voice = cantoneseVoice;
         utterance.lang = 'zh-HK';
+        window.speechSynthesis.speak(utterance);
       } else {
-        // 如果找不到廣東話，嘗試用預設中文 (可能會變成普通話，但總比沒有好)
-        // 但為了避免混淆，我們設定 lang 為 zh-HK，看瀏覽器是否能自動處理
-        utterance.lang = 'zh-HK';
+        // Fallback: 如果找不到系統廣東話語音 (例如 Firefox/Windows)，使用 Google Translate TTS
+        console.warn('System Cantonese voice not found. Using Google TTS fallback.');
+        const audio = new Audio(`https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=zh-HK&client=tw-ob`);
+        audio.play().catch(e => console.error('Google TTS playback failed', e));
+        return; // Skip window.speechSynthesis
       }
     } else {
       // 英文發音 (優先使用英式英語)
@@ -54,9 +57,8 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({ text, className = '' }
         utterance.voice = englishVoice;
       }
       utterance.lang = 'en-GB';
+      window.speechSynthesis.speak(utterance);
     }
-
-    window.speechSynthesis.speak(utterance);
   };
 
   return (
