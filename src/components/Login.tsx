@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { GoogleLogin } from '@react-oauth/google';
-import { testFirebaseConnection } from '../firebase-test';
+import { useGoogleLogin } from '@react-oauth/google';
 
 export const Login: React.FC = () => {
   const [isRegister, setIsRegister] = useState(false);
