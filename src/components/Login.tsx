@@ -35,7 +35,8 @@ export const Login: React.FC = () => {
         
         {/* Debug Info - Remove later */}
         <div className="text-xs text-gray-400 text-center mb-2">
-           API: {import.meta.env.VITE_API_URL || 'Using default'}
+           API: {import.meta.env.VITE_API_URL || 'Using default'} <br/>
+           ClientID: {import.meta.env.VITE_GOOGLE_CLIENT_ID ? import.meta.env.VITE_GOOGLE_CLIENT_ID.substring(0, 10) + '...' : 'Missing'}
         </div>
 
         {error && (
