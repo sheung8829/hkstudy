@@ -30,13 +30,8 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({ text, className = '' }
     const utterance = new SpeechSynthesisUtterance(text);
 
     if (hasChinese) {
-      // 優先使用 ResponsiveVoice (解決 Firefox/Android 廣東話問題)
-      if ((window as any).responsiveVoice) {
-        (window as any).responsiveVoice.speak(text, "Chinese (Hong Kong Female)");
-        return;
-      }
-
-      // Fallback: 瀏覽器原生 API (如果 ResponsiveVoice 沒載入)
+      // 1. 優先嘗試瀏覽器原生 API (因為原生的通常品質最好且免費)
+      // 特別是 iOS/macOS/Chrome Desktop 通常都有很好的廣東話支援
       const cantoneseVoice = voices.find(v => 
         v.lang === 'zh-HK' || 
         v.name.includes('Cantonese') || 
@@ -49,12 +44,21 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({ text, className = '' }
         utterance.voice = cantoneseVoice;
         utterance.lang = 'zh-HK';
         window.speechSynthesis.speak(utterance);
-      } else {
-         // 如果真的什麼都沒有，只好用普通話
-         console.warn('Cantonese voice not found, fallback to default');
-         utterance.lang = 'zh-TW'; // 嘗試台灣國語
-         window.speechSynthesis.speak(utterance);
+        return;
       }
+
+      // 2. 如果原生沒有，才使用 ResponsiveVoice (解決 Firefox/Android 問題)
+      if ((window as any).responsiveVoice) {
+        // 嘗試不同的廣東話參數名稱，以防萬一
+        (window as any).responsiveVoice.speak(text, "Chinese (Hong Kong)");
+        return;
+      }
+
+      // 3. 真的沒辦法了，只好用普通話 fallback
+      console.warn('Cantonese voice not found, fallback to default');
+      utterance.lang = 'zh-TW'; // 嘗試台灣國語
+      window.speechSynthesis.speak(utterance);
+
     } else {
       // 英文發音
       if ((window as any).responsiveVoice) {
