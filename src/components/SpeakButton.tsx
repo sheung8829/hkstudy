@@ -31,8 +31,8 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({ text, className = '' }
 
     if (hasChinese) {
       // 優先使用 ResponsiveVoice (解決 Firefox/Android 廣東話問題)
-      if (window.responsiveVoice) {
-        window.responsiveVoice.speak(text, "Chinese (Hong Kong Female)");
+      if ((window as any).responsiveVoice) {
+        (window as any).responsiveVoice.speak(text, "Chinese (Hong Kong Female)");
         return;
       }
 
@@ -57,8 +57,8 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({ text, className = '' }
       }
     } else {
       // 英文發音
-      if (window.responsiveVoice) {
-         window.responsiveVoice.speak(text, "UK English Female");
+      if ((window as any).responsiveVoice) {
+         (window as any).responsiveVoice.speak(text, "UK English Female");
          return;
       }
       
