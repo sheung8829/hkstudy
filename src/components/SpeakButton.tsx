@@ -47,17 +47,20 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({ text, className = '' }
         return;
       }
 
-      // 2. 如果原生沒有，才使用 ResponsiveVoice (解決 Firefox/Android 問題)
-      if ((window as any).responsiveVoice) {
-        // 嘗試不同的廣東話參數名稱，以防萬一
-        (window as any).responsiveVoice.speak(text, "Chinese (Hong Kong)");
-        return;
-      }
-
-      // 3. 真的沒辦法了，只好用普通話 fallback
-      console.warn('Cantonese voice not found, fallback to default');
-      utterance.lang = 'zh-TW'; // 嘗試台灣國語
-      window.speechSynthesis.speak(utterance);
+      // 2. 如果原生沒有，嘗試 Google Translate TTS (透過 HTML5 Audio 直接播放)
+      // 這是最簡單的 fallback，通常在 Mobile/Firefox 有效
+      // 使用 client=tw-ob 可以獲得較好的相容性
+      const googleTTSUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=zh-HK&client=tw-ob`;
+      const audio = new Audio(googleTTSUrl);
+      
+      // 嘗試播放，如果失敗則印出錯誤
+      audio.play().catch(e => {
+        console.error('Google TTS playback failed', e);
+        // 3. 真的沒辦法了，只好用普通話 fallback (原生)
+        console.warn('Fallback to native Mandarin');
+        utterance.lang = 'zh-TW'; 
+        window.speechSynthesis.speak(utterance);
+      });
 
     } else {
       // 英文發音
