@@ -30,9 +30,16 @@ function StudyApp() {
           
           if (docSnap.exists()) {
             const data = docSnap.data();
-            setWords(data.words || []);
-            setLessons(data.lessons || []);
+            console.log('Firebase data loaded:', data); // Debug log
+            
+            if (data.words && Array.isArray(data.words)) {
+               setWords(data.words);
+            }
+            if (data.lessons && Array.isArray(data.lessons)) {
+               setLessons(data.lessons);
+            }
           } else {
+             console.log('No Firebase data found for user'); // Debug log
              // Check localStorage for migration
              const localWords = localStorage.getItem(`studyweb_data_${user.id}`);
              const localLessons = localStorage.getItem(`studyweb_lessons_${user.id}`);
