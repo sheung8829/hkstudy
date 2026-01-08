@@ -30,7 +30,13 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({ text, className = '' }
     const utterance = new SpeechSynthesisUtterance(text);
 
     if (hasChinese) {
-      // 嘗試尋找廣東話發音
+      // 優先使用 ResponsiveVoice (解決 Firefox/Android 廣東話問題)
+      if (window.responsiveVoice) {
+        window.responsiveVoice.speak(text, "Chinese (Hong Kong Female)");
+        return;
+      }
+
+      // Fallback: 瀏覽器原生 API (如果 ResponsiveVoice 沒載入)
       const cantoneseVoice = voices.find(v => 
         v.lang === 'zh-HK' || 
         v.name.includes('Cantonese') || 
@@ -44,14 +50,18 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({ text, className = '' }
         utterance.lang = 'zh-HK';
         window.speechSynthesis.speak(utterance);
       } else {
-        // Fallback: 如果找不到系統廣東話語音 (例如 Firefox/Windows)，使用 Google Translate TTS
-        console.warn('System Cantonese voice not found. Using Google TTS fallback.');
-        const audio = new Audio(`https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=zh-HK&client=tw-ob`);
-        audio.play().catch(e => console.error('Google TTS playback failed', e));
-        return; // Skip window.speechSynthesis
+         // 如果真的什麼都沒有，只好用普通話
+         console.warn('Cantonese voice not found, fallback to default');
+         utterance.lang = 'zh-TW'; // 嘗試台灣國語
+         window.speechSynthesis.speak(utterance);
       }
     } else {
-      // 英文發音 (優先使用英式英語)
+      // 英文發音
+      if (window.responsiveVoice) {
+         window.responsiveVoice.speak(text, "UK English Female");
+         return;
+      }
+      
       const englishVoice = voices.find(v => v.lang === 'en-GB' || v.lang === 'en_GB');
       if (englishVoice) {
         utterance.voice = englishVoice;
