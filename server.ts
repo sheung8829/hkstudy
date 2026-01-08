@@ -194,10 +194,8 @@ app.get('/api/tts', async (req, res) => {
 
   try {
     // Generate TTS buffer directly using 'tts' function
-    const buffer = await tts(text, {
-        voice: "zh-HK-HiuGaaiNeural",
-        outputFormat: "audio-24khz-48kbitrate-mono-mp3"
-    });
+    // 2nd argument is voice string, not options object
+    const buffer = await tts(text, "zh-HK-HiuGaaiNeural");
     
     // Send buffer directly
     res.set('Content-Type', 'audio/mpeg');
