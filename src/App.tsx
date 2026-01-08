@@ -223,7 +223,7 @@ function StudyApp() {
 
 // NOTE: You need to replace "YOUR_GOOGLE_CLIENT_ID" with your actual Google Client ID
 // You can get one from https://console.cloud.google.com/apis/credentials
-const GOOGLE_CLIENT_ID = "404800308160-1l3b1p2rqnqbd8j6s1hc3qk05osus39i.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "404800308160-1l3b1p2rqnqbd8j6s1hc3qk05osus39i.apps.googleusercontent.com";
 
 function App() {
   return (
