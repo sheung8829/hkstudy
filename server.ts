@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { ttsSave, tts } from 'edge-tts';
-import fs from 'fs';
+import mongoose from 'mongoose';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -11,79 +11,158 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 3001;
 
+// MongoDB Connection String
+// In production (Render), this will be set in Environment Variables
+// In local, you can create a .env file or hardcode it temporarily for testing
+const MONGODB_URI = process.env.MONGODB_URI;
+
 app.use(cors());
 app.use(express.json());
 
-// --- Database Setup ---
-const DB_DIR = path.join(__dirname, 'db');
-if (!fs.existsSync(DB_DIR)) fs.mkdirSync(DB_DIR);
+// --- MongoDB Schemas ---
+const userSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  password: { type: String }, // Optional for Google users
+  googleId: { type: String },
+  createdAt: { type: Number, default: Date.now }
+});
 
-const USERS_FILE = path.join(DB_DIR, 'users.json');
-const DATA_FILE = path.join(DB_DIR, 'data.json');
+const dataSchema = new mongoose.Schema({
+  userId: { type: String, required: true, unique: true },
+  words: { type: Array, default: [] },
+  lessons: { type: Array, default: [] },
+  updatedAt: { type: Number, default: Date.now }
+});
 
-const readJson = (file: string, defaultValue: any = []) => {
-    if (!fs.existsSync(file)) return defaultValue;
-    try {
-        return JSON.parse(fs.readFileSync(file, 'utf-8'));
-    } catch (e) { return defaultValue; }
-};
+const User = mongoose.model('User', userSchema);
+const UserData = mongoose.model('UserData', dataSchema);
 
-const writeJson = (file: string, data: any) => {
-    fs.writeFileSync(file, JSON.stringify(data, null, 2));
-};
+// Connect to MongoDB
+if (MONGODB_URI) {
+  mongoose.connect(MONGODB_URI)
+    .then(() => console.log('Connected to MongoDB'))
+    .catch(err => console.error('MongoDB connection error:', err));
+} else {
+  console.log('No MONGODB_URI provided. Database features will fail unless configured.');
+}
 
 // --- Auth Routes ---
-app.post('/api/auth/register', (req, res) => {
+
+// Register
+app.post('/api/auth/register', async (req, res) => {
+  try {
     const { username, password } = req.body;
-    const users = readJson(USERS_FILE, []);
-    // @ts-ignore
-    if (users.find((u) => u.username === username)) {
-        return res.status(400).json({ error: '使用者名稱已被使用' });
+    
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+      return res.status(400).json({ error: '使用者名稱已被使用' });
     }
-    const newUser = { id: crypto.randomUUID(), username, password, createdAt: Date.now() };
-    users.push(newUser);
-    writeJson(USERS_FILE, users);
-    res.json(newUser);
+
+    const newUser = new User({ username, password });
+    await newUser.save();
+
+    // Return user info (map _id to id)
+    res.json({ 
+      id: newUser._id.toString(), 
+      username: newUser.username, 
+      createdAt: newUser.createdAt 
+    });
+  } catch (error) {
+    console.error('Register error:', error);
+    res.status(500).json({ error: '註冊失敗' });
+  }
 });
 
-app.post('/api/auth/login', (req, res) => {
+// Login
+app.post('/api/auth/login', async (req, res) => {
+  try {
     const { username, password } = req.body;
-    const users = readJson(USERS_FILE, []);
-    // @ts-ignore
-    const user = users.find((u) => u.username === username && u.password === password);
-    if (!user) return res.status(401).json({ error: '帳號或密碼錯誤' });
-    res.json(user);
-});
-
-app.post('/api/auth/google', (req, res) => {
-    const { email, googleId } = req.body;
-    const users = readJson(USERS_FILE, []);
-    // @ts-ignore
-    let user = users.find((u) => u.username === email);
+    
+    const user = await User.findOne({ username, password });
     if (!user) {
-        user = { id: googleId, username: email, createdAt: Date.now() };
-        users.push(user);
-        writeJson(USERS_FILE, users);
+      return res.status(401).json({ error: '帳號或密碼錯誤' });
     }
-    res.json(user);
+
+    res.json({ 
+      id: user._id.toString(), 
+      username: user.username, 
+      createdAt: user.createdAt 
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: '登入失敗' });
+  }
+});
+
+// Google Login
+app.post('/api/auth/google', async (req, res) => {
+  try {
+    const { email, googleId } = req.body;
+    
+    let user = await User.findOne({ username: email });
+    
+    if (!user) {
+      // Create new user if not exists
+      user = new User({ 
+        username: email, 
+        googleId, 
+        createdAt: Date.now() 
+      });
+      await user.save();
+    } else if (!user.googleId) {
+      // Link Google ID if user exists but hasn't linked (optional logic)
+      user.googleId = googleId;
+      await user.save();
+    }
+
+    res.json({ 
+      id: user._id.toString(), 
+      username: user.username, 
+      createdAt: user.createdAt 
+    });
+  } catch (error) {
+    console.error('Google login error:', error);
+    res.status(500).json({ error: 'Google 登入失敗' });
+  }
 });
 
 // --- Data Routes ---
-app.get('/api/data/:userId', (req, res) => {
+
+// Get User Data
+app.get('/api/data/:userId', async (req, res) => {
+  try {
     const { userId } = req.params;
-    const dataStore = readJson(DATA_FILE, {});
-    // @ts-ignore
-    res.json(dataStore[userId] || { words: [], lessons: [] });
+    
+    const data = await UserData.findOne({ userId });
+    
+    if (!data) {
+      return res.json({ words: [], lessons: [] });
+    }
+
+    res.json({ words: data.words, lessons: data.lessons });
+  } catch (error) {
+    console.error('Get data error:', error);
+    res.status(500).json({ error: '讀取資料失敗' });
+  }
 });
 
-app.post('/api/data/:userId', (req, res) => {
+// Save User Data
+app.post('/api/data/:userId', async (req, res) => {
+  try {
     const { userId } = req.params;
     const { words, lessons } = req.body;
-    const dataStore = readJson(DATA_FILE, {});
-    // @ts-ignore
-    dataStore[userId] = { words, lessons };
-    writeJson(DATA_FILE, dataStore);
+
+    await UserData.findOneAndUpdate(
+      { userId },
+      { userId, words, lessons, updatedAt: Date.now() },
+      { upsert: true, new: true }
+    );
+
     res.json({ success: true });
+  } catch (error) {
+    console.error('Save data error:', error);
+    res.status(500).json({ error: '儲存資料失敗' });
+  }
 });
 
 // --- TTS Route ---
@@ -112,5 +191,5 @@ app.get('/api/tts', async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`TTS Server running at http://localhost:${port}`);
+  console.log(`Server running at http://localhost:${port}`);
 });

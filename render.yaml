@@ -8,10 +8,13 @@ services:
     envVars:
       - key: PORT
         value: 10000
-    disk:
-      name: data
-      mountPath: /opt/render/project/src/db
-      sizeGB: 1
+      - key: MONGODB_URI
+        sync: false # 需在 Render 控制台手動填入 MongoDB Connection String
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: studyweb-backend
+          property: url
 
   # 前端靜態網站
   - type: static
