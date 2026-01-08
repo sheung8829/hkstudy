@@ -21,30 +21,34 @@ app.use(cors({
 // Handle preflight requests
 app.options('*', cors());
 
-// --- Firebase Setup ---
-// In production (Render), we will pass the service account JSON string via Environment Variable
-// Variable name: FIREBASE_SERVICE_ACCOUNT
-const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT;
+// --- Firebase Setup (Lazy Initialization) ---
+let db;
 
-if (serviceAccountKey) {
-  try {
+const getDb = () => {
+  if (!db) {
     if (!admin.apps.length) {
-       const formattedKey = serviceAccountKey.replace(/\\n/g, '\n');
-       const serviceAccount = JSON.parse(formattedKey);
-       admin.initializeApp({
-         credential: admin.credential.cert(serviceAccount)
-       });
-       console.log('Firebase initialized successfully');
+      const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT;
+      if (serviceAccountKey) {
+        try {
+          const formattedKey = serviceAccountKey.replace(/\\n/g, '\n');
+          const serviceAccount = JSON.parse(formattedKey);
+          admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount)
+          });
+          console.log('Firebase initialized successfully');
+        } catch (error) {
+          console.error('Error initializing Firebase:', error);
+          throw new Error('Firebase init failed');
+        }
+      } else {
+         console.warn('FIREBASE_SERVICE_ACCOUNT missing');
+         throw new Error('Missing Firebase Config');
+      }
     }
-  } catch (error) {
-    console.error('Error parsing FIREBASE_SERVICE_ACCOUNT:', error);
+    db = admin.firestore();
   }
-} else {
-  console.warn('WARNING: FIREBASE_SERVICE_ACCOUNT environment variable is missing.');
-  console.warn('Database features will not work until configured.');
-}
-
-const db = admin.firestore();
+  return db;
+};
 
 // app.use(cors()); // Already configured above
 app.use(express.json());
@@ -81,6 +85,7 @@ app.get('/api/debug', (req, res) => {
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { username, password } = req.body;
+    const db = getDb();
     
     // Check if user exists
     const usersRef = db.collection('users');
@@ -112,6 +117,7 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { username, password } = req.body;
+    const db = getDb();
     
     const usersRef = db.collection('users');
     const snapshot = await usersRef
@@ -141,6 +147,7 @@ app.post('/api/auth/login', async (req, res) => {
 app.post('/api/auth/google', async (req, res) => {
   try {
     const { email, googleId } = req.body;
+    const db = getDb();
     
     const usersRef = db.collection('users');
     const snapshot = await usersRef.where('username', '==', email).get();
@@ -184,6 +191,7 @@ app.post('/api/auth/google', async (req, res) => {
 app.get('/api/data/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
+    const db = getDb();
     
     const dataRef = db.collection('userData').doc(userId);
     const doc = await dataRef.get();
@@ -205,6 +213,7 @@ app.post('/api/data/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     const { words, lessons } = req.body;
+    const db = getDb();
 
     const dataRef = db.collection('userData').doc(userId);
     await dataRef.set({
