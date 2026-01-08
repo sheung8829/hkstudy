@@ -70,10 +70,18 @@ function StudyApp() {
     const saveData = async () => {
       if (user) {
         try {
+          // Clean undefined values from words array (Firestore doesn't like undefined)
+          const cleanWords = words.map(w => {
+            const clean = { ...w };
+            if (clean.lessonId === undefined) delete clean.lessonId;
+            if (clean.imageUrl === undefined) delete clean.imageUrl;
+            return clean;
+          });
+
           const docRef = doc(db, 'userData', user.id);
           await setDoc(docRef, {
             userId: user.id,
-            words,
+            words: cleanWords,
             lessons,
             updatedAt: Date.now()
           }, { merge: true });
