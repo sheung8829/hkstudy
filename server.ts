@@ -49,6 +49,32 @@ const db = admin.firestore();
 // app.use(cors()); // Already configured above
 app.use(express.json());
 
+// --- Debug Route ---
+app.get('/api/debug', (req, res) => {
+  const key = process.env.FIREBASE_SERVICE_ACCOUNT;
+  const status = {
+    hasKey: !!key,
+    keyLength: key ? key.length : 0,
+    firebaseApps: admin.apps.length,
+    nodeEnv: process.env.NODE_ENV,
+    cors: 'configured'
+  };
+  
+  try {
+    if (key) {
+      const formatted = key.replace(/\\n/g, '\n');
+      JSON.parse(formatted);
+      // @ts-ignore
+      status.jsonParse = 'success';
+    }
+  } catch (e) {
+    // @ts-ignore
+    status.jsonParse = 'failed: ' + e.message;
+  }
+  
+  res.json(status);
+});
+
 // --- Auth Routes ---
 
 // Register
