@@ -33,6 +33,11 @@ export const Login: React.FC = () => {
           {isRegister ? '註冊帳號' : '登入生字温習本'}
         </h1>
         
+        {/* Debug Info - Remove later */}
+        <div className="text-xs text-gray-400 text-center mb-2">
+           API: {import.meta.env.VITE_API_URL || 'Using default'}
+        </div>
+
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-4 text-sm">
             {error}
