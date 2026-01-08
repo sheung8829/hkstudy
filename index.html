@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>生字温習本</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+      window.onload = function () {
+        // Force Google One Tap/Sign In to use Traditional Chinese
+        if (window.google) {
+          window.google.accounts.id.initialize({
+            client_id: "YOUR_GOOGLE_CLIENT_ID", // This is just for locale, actual auth is handled by react-oauth/google
+            hl: "zh-TW" 
+          });
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

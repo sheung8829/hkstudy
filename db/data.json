@@ -1,0 +1,41 @@
+{
+  "62a5814d-b05e-471c-ae3e-dc884651e8e9": {
+    "words": [],
+    "lessons": []
+  },
+  "102734405879048871038": {
+    "words": [
+      {
+        "word": "香港",
+        "meaning": "香港",
+        "example": "香港",
+        "imageUrl": "",
+        "id": "ea3c5d72-0dac-4e6b-9e47-4d4c58aa5ec6",
+        "createdAt": 1767850357147
+      },
+      {
+        "word": "普通話",
+        "meaning": "普通話",
+        "example": "普通話",
+        "imageUrl": "",
+        "id": "888ff1ce-9937-4f7d-8886-de827510c8c9",
+        "createdAt": 1767787386269
+      },
+      {
+        "word": "測試",
+        "meaning": "測試",
+        "example": "",
+        "imageUrl": "",
+        "id": "ed80075d-2725-4852-a5c7-6a6a59dddc9b",
+        "createdAt": 1767786923086
+      }
+    ],
+    "lessons": [
+      {
+        "id": "a2a25de7-f4ed-443f-b2bf-6169026b9811",
+        "title": "test",
+        "createdAt": 1767849012531
+      }
+    ]
+  }
+}

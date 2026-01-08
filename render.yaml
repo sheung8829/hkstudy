@@ -1,0 +1,29 @@
+services:
+  # 後端服務 (TTS API + 資料庫)
+  - type: web
+    name: studyweb-backend
+    env: node
+    buildCommand: npm install
+    startCommand: npx tsx server.ts
+    envVars:
+      - key: PORT
+        value: 10000
+    disk:
+      name: data
+      mountPath: /opt/render/project/src/db
+      sizeGB: 1
+
+  # 前端靜態網站
+  - type: static
+    name: studyweb-frontend
+    env: static
+    buildCommand: npm install && npm run build
+    publishDir: dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: studyweb-backend
+          property: url
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false # 需在 Render 控制台手動填入
