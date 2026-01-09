@@ -23,6 +23,7 @@ export const MatchingGame: React.FC<MatchingGameProps> = ({ words, onBack, isHar
   const [isGameComplete, setIsGameComplete] = useState(false);
   const [score, setScore] = useState(0);
   const [time, setTime] = useState(0);
+  const [mistakes, setMistakes] = useState(0);
   const [isActive, setIsActive] = useState(false);
 
   useEffect(() => {
@@ -66,6 +67,7 @@ export const MatchingGame: React.FC<MatchingGameProps> = ({ words, onBack, isHar
     setCards(newCards.sort(() => Math.random() - 0.5));
     setScore(0);
     setTime(0);
+    setMistakes(0);
     setIsGameComplete(false);
     setIsActive(true);
     setSelectedCards([]);
@@ -102,6 +104,7 @@ export const MatchingGame: React.FC<MatchingGameProps> = ({ words, onBack, isHar
         setTimeout(() => {
           setSelectedCards([]);
           setScore(s => Math.max(0, s - 2)); // Penalty for wrong match
+          setMistakes(m => m + 1);
         }, 1000);
       }
     }
@@ -160,7 +163,7 @@ export const MatchingGame: React.FC<MatchingGameProps> = ({ words, onBack, isHar
                    </div>
                 )}
                 
-                {!isHardMode && (
+                {!isHardMode && card.content && (
                   <div className="mt-2" onClick={e => e.stopPropagation()}>
                     <SpeakButton text={card.content} />
                   </div>
@@ -174,7 +177,9 @@ export const MatchingGame: React.FC<MatchingGameProps> = ({ words, onBack, isHar
           <div className="text-4xl mb-4">🎉</div>
           <h3 className="text-2xl font-bold text-gray-800 mb-2">挑戰成功！</h3>
           <p className="text-gray-600 mb-6">
-            你花了 {formatTime(time)} 完成配對，總得分：<span className="text-blue-600 font-bold text-xl">{score}</span>
+            你花了 {formatTime(time)} 完成配對<br/>
+            錯誤次數：<span className="text-red-500 font-bold">{mistakes}</span> 次<br/>
+            總得分：<span className="text-blue-600 font-bold text-xl">{score}</span>
           </p>
           <div className="flex justify-center gap-4">
             <button

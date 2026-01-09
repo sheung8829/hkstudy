@@ -103,8 +103,12 @@ export const MultipleChoiceGame: React.FC<MultipleChoiceGameProps> = ({ words, o
         <p className="text-xl text-gray-700 mb-2">
           總得分：<span className="font-bold text-blue-600">{score}</span> / {questions.length * 10}
         </p>
+        <p className="text-gray-600 mb-2">
+           答對：<span className="text-green-600 font-bold">{score / 10}</span> 題 / 
+           答錯：<span className="text-red-500 font-bold">{questions.length - (score / 10)}</span> 題
+        </p>
         <p className="text-gray-500 mb-8">
-          答對率：{Math.round((score / (questions.length * 10)) * 100)}%
+          正確率：{Math.round((score / (questions.length * 10)) * 100)}%
         </p>
         <div className="flex justify-center gap-4">
           <button
@@ -172,7 +176,7 @@ export const MultipleChoiceGame: React.FC<MultipleChoiceGameProps> = ({ words, o
               </span>
               <div className="flex-1 flex items-center gap-2">
                  <div className="text-lg">{option.meaning}</div>
-                 {!isHardMode && (
+                 {!isHardMode && option.meaning && (
                     <div onClick={e => e.stopPropagation()}>
                       <SpeakButton text={option.meaning} className="p-1" />
                     </div>
