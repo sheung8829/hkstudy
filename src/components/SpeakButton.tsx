@@ -30,7 +30,15 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({ text, className = '' }
     const utterance = new SpeechSynthesisUtterance(text);
 
     if (hasChinese) {
-      // 1. 優先嘗試瀏覽器原生 API
+      // 1. 優先使用 ResponsiveVoice (解決 Chrome 短詞問題 & Firefox/Mobile 相容性)
+      if ((window as any).responsiveVoice) {
+        console.log('Using ResponsiveVoice');
+        // 嘗試不同的參數，確保選到廣東話
+        (window as any).responsiveVoice.speak(text, "Chinese (Hong Kong Female)");
+        return;
+      }
+
+      // 2. 如果 ResponsiveVoice 沒載入，才嘗試瀏覽器原生 API
       // 嚴格篩選：必須包含 HK/Cantonese，且絕不能包含 Mandarin/Taiwan/China (除非是 Google 粵語)
       const cantoneseVoice = voices.find(v => {
         const name = v.name.toLowerCase();
