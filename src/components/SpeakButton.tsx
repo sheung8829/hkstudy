@@ -42,7 +42,7 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({ text, className = '' }
       if (!targetVoice) {
         targetVoice = voices.find(v => {
           const name = v.name.toLowerCase();
-          const lang = v.lang.toLowerCase();
+          // const lang = v.lang.toLowerCase(); // Unused
           
           const isCantonese = 
             name.includes('cantonese') || 
