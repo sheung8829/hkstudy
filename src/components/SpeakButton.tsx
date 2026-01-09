@@ -31,37 +31,37 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({ text, className = '' }
     const utterance = new SpeechSynthesisUtterance(text);
 
     if (hasChinese) {
-      // 嚴格篩選：必須包含 HK/Cantonese，且絕不能包含 Mandarin/Taiwan/China (除非是 Google 粵語)
-      const cantoneseVoice = voices.find(v => {
-        const name = v.name.toLowerCase();
-        const lang = v.lang.toLowerCase();
-        
-        // 必須是粵語特徵
-        const isCantonese = 
-          lang === 'zh-hk' || 
-          lang === 'yue-hk' ||
-          lang === 'yue' || 
-          name.includes('cantonese') || 
-          name.includes('粵語') ||
-          name.includes('hong kong') ||
-          name.includes('hk') ||
-          name.includes('hiugaai');
+      // 策略 1: 絕對信任 lang 代碼 (最準確)
+      let targetVoice = voices.find(v => 
+        v.lang === 'zh-HK' || 
+        v.lang === 'yue-HK' || 
+        v.lang === 'zh-yue'
+      );
 
-        // 絕對不能是普通話特徵 (除非它同時標榜是粵語，這很罕見)
-        const isMandarin = 
-          name.includes('mandarin') || 
-          name.includes('putonghua') || 
-          name.includes('taiwan') || 
-          (name.includes('china') && !name.includes('hong kong')) ||
-          name.includes('cn');
+      // 策略 2: 如果找不到標準代碼，才檢查名稱 (模糊搜尋)
+      if (!targetVoice) {
+        targetVoice = voices.find(v => {
+          const name = v.name.toLowerCase();
+          const lang = v.lang.toLowerCase();
+          
+          const isCantonese = 
+            name.includes('cantonese') || 
+            name.includes('粵語') ||
+            name.includes('hong kong') ||
+            name.includes('hk') ||
+            name.includes('hiugaai');
 
-        return isCantonese && !isMandarin;
-      });
+          // 簡單排華：只要不是明顯的普通話就行
+          const isMandarin = name.includes('mandarin') || name.includes('putonghua');
 
-      if (cantoneseVoice) {
-        console.log(`Using native voice: ${cantoneseVoice.name} (${cantoneseVoice.lang}) for text: ${text}`);
-        utterance.voice = cantoneseVoice;
-        utterance.lang = 'zh-HK';
+          return isCantonese && !isMandarin;
+        });
+      }
+
+      if (targetVoice) {
+        console.log(`Using voice: ${targetVoice.name} (${targetVoice.lang})`);
+        utterance.voice = targetVoice;
+        utterance.lang = targetVoice.lang; // 使用語音自帶的 lang
         window.speechSynthesis.speak(utterance);
       } else {
         // 找不到廣東話，顯示安裝教學
@@ -129,6 +129,19 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({ text, className = '' }
             >
               知道了
             </button>
+            
+            {/* Debug Info */}
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <p className="text-xs text-gray-500 font-mono mb-2">偵測到的中文語音 (Debug):</p>
+              <div className="max-h-24 overflow-y-auto text-xs text-gray-400 font-mono bg-gray-50 p-2 rounded">
+                {voices.filter(v => v.lang.includes('zh') || v.lang.includes('yue') || v.lang.includes('HK')).map((v, i) => (
+                  <div key={i}>{v.name} ({v.lang})</div>
+                ))}
+                {voices.filter(v => v.lang.includes('zh') || v.lang.includes('yue') || v.lang.includes('HK')).length === 0 && (
+                  <div>無 (請確認瀏覽器權限或系統設定)</div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
