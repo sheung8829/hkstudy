@@ -17,7 +17,7 @@ function StudyApp() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [showFlashcard, setShowFlashcard] = useState(false);
   const [showChallenge, setShowChallenge] = useState(false);
-  const [selectedLessonId, setSelectedLessonId] = useState<string>('');
+  const [selectedLessonIds, setSelectedLessonIds] = useState<string[]>([]);
   const [showLessonManager, setShowLessonManager] = useState(false);
 
   // Load data for current user
@@ -135,9 +135,21 @@ function StudyApp() {
   };
 
   const filteredWords = useMemo(() => {
-    if (!selectedLessonId) return words;
-    return words.filter(w => w.lessonId === selectedLessonId);
-  }, [words, selectedLessonId]);
+    if (selectedLessonIds.length === 0) return words;
+    return words.filter(w => w.lessonId && selectedLessonIds.includes(w.lessonId));
+  }, [words, selectedLessonIds]);
+
+  const toggleLessonFilter = (id: string) => {
+    setSelectedLessonIds(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(lessonId => lessonId !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
+  const clearLessonFilter = () => setSelectedLessonIds([]);
 
   if (!user) {
     return <Login />;
@@ -155,22 +167,37 @@ function StudyApp() {
             </div>
           </div>
           
-          <div className="flex flex-wrap gap-2 justify-between items-center bg-white p-4 rounded-lg shadow-sm">
-             <div className="flex items-center gap-2 flex-1">
-                <label className="text-gray-700 font-medium whitespace-nowrap">篩選課文:</label>
-                <select 
-                  value={selectedLessonId} 
-                  onChange={(e) => setSelectedLessonId(e.target.value)}
-                  className="p-2 border border-gray-300 rounded bg-white flex-1 max-w-xs"
-                >
-                  <option value="">全部生字</option>
+          <div className="flex flex-wrap gap-2 justify-between items-start bg-white p-4 rounded-lg shadow-sm">
+             <div className="flex flex-col gap-2 w-full md:w-auto flex-1 mr-4">
+                <label className="text-gray-700 font-medium">篩選課文 (可多選):</label>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={clearLessonFilter}
+                    className={`px-3 py-1 rounded-full text-sm border transition ${
+                      selectedLessonIds.length === 0
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    全部
+                  </button>
                   {lessons.map(lesson => (
-                    <option key={lesson.id} value={lesson.id}>{lesson.title}</option>
+                    <button
+                      key={lesson.id}
+                      onClick={() => toggleLessonFilter(lesson.id)}
+                      className={`px-3 py-1 rounded-full text-sm border transition ${
+                        selectedLessonIds.includes(lesson.id)
+                          ? 'bg-blue-100 text-blue-800 border-blue-300 font-medium'
+                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {lesson.title}
+                    </button>
                   ))}
-                </select>
+                </div>
              </div>
              
-             <div className="flex gap-2 mt-2 sm:mt-0">
+             <div className="flex flex-wrap gap-2 mt-4 md:mt-0 w-full md:w-auto justify-end">
                 <button
                   onClick={() => setShowLessonManager(!showLessonManager)}
                   className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition"
@@ -223,7 +250,7 @@ function StudyApp() {
 
             <div className="mb-4 text-gray-600 font-medium">
               生字列表 ({filteredWords.length})
-              {selectedLessonId && ` - ${lessons.find(l => l.id === selectedLessonId)?.title}`}
+              {selectedLessonIds.length > 0 && ` - 已選 ${selectedLessonIds.length} 個課文`}
             </div>
 
             <WordList words={filteredWords} lessons={lessons} onDelete={deleteWord} onUpdate={updateWord} />
