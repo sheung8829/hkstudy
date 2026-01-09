@@ -40,12 +40,15 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({ text, className = '' }
     const utterance = new SpeechSynthesisUtterance(text);
 
     if (hasChinese) {
-      // 策略 1: 絕對信任 lang 代碼 (最準確)
-      let targetVoice = availableVoices.find(v => 
-        v.lang === 'zh-HK' || 
-        v.lang === 'yue-HK' || 
-        v.lang === 'zh-yue'
-      );
+      // 策略 1: 寬鬆信任 lang 代碼 (包含 HK 或 yue 即可)
+      // 解決 Android 上 yue_HK_#Hans 或 zh_HK_#Hans 的問題
+      let targetVoice = availableVoices.find(v => {
+        const l = v.lang.replace('_', '-').toLowerCase(); // 統一格式
+        return l.includes('zh-hk') || 
+               l.includes('yue-hk') || 
+               l.includes('zh-yue') ||
+               l === 'yue';
+      });
 
       // 策略 2: 如果找不到標準代碼，才檢查名稱 (模糊搜尋)
       if (!targetVoice) {
