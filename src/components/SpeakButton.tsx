@@ -27,12 +27,21 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({ text, className = '' }
     e.stopPropagation();
     window.speechSynthesis.cancel();
 
+    // 重新獲取語音列表 (解決 Android Chrome 第一次可能抓不到的問題)
+    const currentVoices = window.speechSynthesis.getVoices();
+    if (currentVoices.length > 0 && voices.length === 0) {
+      setVoices(currentVoices);
+    }
+    
+    // 如果列表還是空的，嘗試再抓一次 (有些瀏覽器需要這樣)
+    const availableVoices = currentVoices.length > 0 ? currentVoices : voices;
+
     const hasChinese = /[\u4e00-\u9fa5]/.test(text);
     const utterance = new SpeechSynthesisUtterance(text);
 
     if (hasChinese) {
       // 策略 1: 絕對信任 lang 代碼 (最準確)
-      let targetVoice = voices.find(v => 
+      let targetVoice = availableVoices.find(v => 
         v.lang === 'zh-HK' || 
         v.lang === 'yue-HK' || 
         v.lang === 'zh-yue'
@@ -40,7 +49,7 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({ text, className = '' }
 
       // 策略 2: 如果找不到標準代碼，才檢查名稱 (模糊搜尋)
       if (!targetVoice) {
-        targetVoice = voices.find(v => {
+        targetVoice = availableVoices.find(v => {
           const name = v.name.toLowerCase();
           // const lang = v.lang.toLowerCase(); // Unused
           
@@ -69,7 +78,7 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({ text, className = '' }
       }
     } else {
       // 英文發音
-      const englishVoice = voices.find(v => v.lang === 'en-GB' || v.lang === 'en_GB');
+      const englishVoice = availableVoices.find(v => v.lang === 'en-GB' || v.lang === 'en_GB');
       if (englishVoice) {
         utterance.voice = englishVoice;
       }
@@ -132,13 +141,14 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({ text, className = '' }
             
             {/* Debug Info */}
             <div className="mt-4 pt-4 border-t border-gray-200">
-              <p className="text-xs text-gray-500 font-mono mb-2">偵測到的中文語音 (Debug):</p>
+              <p className="text-xs text-gray-500 font-mono mb-2">偵測到的語音 ({voices.length} 個):</p>
               <div className="max-h-24 overflow-y-auto text-xs text-gray-400 font-mono bg-gray-50 p-2 rounded">
-                {voices.filter(v => v.lang.includes('zh') || v.lang.includes('yue') || v.lang.includes('HK')).map((v, i) => (
-                  <div key={i}>{v.name} ({v.lang})</div>
-                ))}
-                {voices.filter(v => v.lang.includes('zh') || v.lang.includes('yue') || v.lang.includes('HK')).length === 0 && (
-                  <div>無 (請確認瀏覽器權限或系統設定)</div>
+                {voices.length > 0 ? (
+                  voices.map((v, i) => (
+                    <div key={i}>{v.name} ({v.lang})</div>
+                  ))
+                ) : (
+                  <div>無 (請點擊按鈕重試)</div>
                 )}
               </div>
             </div>
