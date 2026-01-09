@@ -40,8 +40,9 @@ export const MatchingGame: React.FC<MatchingGameProps> = ({ words, onBack, isHar
   }, [isActive, isGameComplete]);
 
   const initGame = () => {
-    // Select up to 6 words for the game to keep it manageable on screen
-    const gameWords = [...words].sort(() => Math.random() - 0.5).slice(0, 6);
+    // Select up to 12 words to keep it playable (24 cards total is max for most screens)
+    // If user wants to play all, they can play multiple rounds
+    const gameWords = [...words].sort(() => Math.random() - 0.5).slice(0, 12);
     
     const newCards: Card[] = [];
     gameWords.forEach(w => {
@@ -151,7 +152,7 @@ export const MatchingGame: React.FC<MatchingGameProps> = ({ words, onBack, isHar
                 {card.type === 'word' ? (
                    <div className="font-bold text-lg text-gray-800">{card.content}</div>
                 ) : (
-                   <div className="flex flex-col items-center">
+                   <div className="flex flex-col items-center w-full">
                      {card.imageUrl && (
                        <img src={card.imageUrl} alt="hint" className="w-12 h-12 object-cover rounded mb-2" />
                      )}
@@ -159,7 +160,7 @@ export const MatchingGame: React.FC<MatchingGameProps> = ({ words, onBack, isHar
                    </div>
                 )}
                 
-                {card.type === 'word' && !isHardMode && (
+                {!isHardMode && (
                   <div className="mt-2" onClick={e => e.stopPropagation()}>
                     <SpeakButton text={card.content} />
                   </div>

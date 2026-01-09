@@ -29,7 +29,8 @@ export const MultipleChoiceGame: React.FC<MultipleChoiceGameProps> = ({ words, o
   const initGame = () => {
     if (words.length < 4) return; // Need at least 4 words
 
-    const shuffledWords = [...words].sort(() => Math.random() - 0.5).slice(0, 10); // Max 10 questions
+    // Use all words for questions (randomized order)
+    const shuffledWords = [...words].sort(() => Math.random() - 0.5); 
     
     const newQuestions: Question[] = shuffledWords.map(target => {
       // Pick 3 distractors
@@ -169,10 +170,15 @@ export const MultipleChoiceGame: React.FC<MultipleChoiceGameProps> = ({ words, o
               <span className="w-8 h-8 rounded-full bg-white border border-gray-300 flex items-center justify-center mr-3 text-sm font-bold text-gray-500 shadow-sm">
                 {String.fromCharCode(65 + index)}
               </span>
-              <div className="flex-1">
+              <div className="flex-1 flex items-center gap-2">
                  <div className="text-lg">{option.meaning}</div>
+                 {!isHardMode && (
+                    <div onClick={e => e.stopPropagation()}>
+                      <SpeakButton text={option.meaning} className="p-1" />
+                    </div>
+                 )}
                  {isAnswered && index === currentQ.correctIndex && (
-                    <div className="text-sm text-green-600 mt-1">"{option.example}"</div>
+                    <div className="text-sm text-green-600 mt-1 w-full">"{option.example}"</div>
                  )}
               </div>
               {option.imageUrl && (
