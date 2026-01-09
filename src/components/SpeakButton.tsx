@@ -31,19 +31,35 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({ text, className = '' }
 
     if (hasChinese) {
       // 1. 優先嘗試瀏覽器原生 API
-      const cantoneseVoice = voices.find(v => 
-        v.lang === 'zh-HK' || 
-        v.lang === 'yue-HK' || // Android 常見
-        v.lang === 'yue' || 
-        v.name.includes('Cantonese') || 
-        v.name.includes('粵語') ||
-        v.name.includes('Hong Kong') ||
-        v.name.includes('HK') ||
-        v.name.includes('HiuGaai')
-      );
+      // 嚴格篩選：必須包含 HK/Cantonese，且絕不能包含 Mandarin/Taiwan/China (除非是 Google 粵語)
+      const cantoneseVoice = voices.find(v => {
+        const name = v.name.toLowerCase();
+        const lang = v.lang.toLowerCase();
+        
+        // 必須是粵語特徵
+        const isCantonese = 
+          lang === 'zh-hk' || 
+          lang === 'yue-hk' ||
+          lang === 'yue' || 
+          name.includes('cantonese') || 
+          name.includes('粵語') ||
+          name.includes('hong kong') ||
+          name.includes('hk') ||
+          name.includes('hiugaai');
+
+        // 絕對不能是普通話特徵 (除非它同時標榜是粵語，這很罕見)
+        const isMandarin = 
+          name.includes('mandarin') || 
+          name.includes('putonghua') || 
+          name.includes('taiwan') || 
+          (name.includes('china') && !name.includes('hong kong')) ||
+          name.includes('cn');
+
+        return isCantonese && !isMandarin;
+      });
 
       if (cantoneseVoice) {
-        console.log('Using native Cantonese voice:', cantoneseVoice.name);
+        console.log(`Using native voice: ${cantoneseVoice.name} (${cantoneseVoice.lang}) for text: ${text}`);
         utterance.voice = cantoneseVoice;
         utterance.lang = 'zh-HK';
         window.speechSynthesis.speak(utterance);
